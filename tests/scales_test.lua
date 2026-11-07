@@ -110,6 +110,16 @@ t.eq(
 )
 t.eq(show(scales.from_root({ 0, 2, 4 }, nil)), "0,2,4", "from_root: no root")
 t.eq(show(scales.from_root({ 0, 2, 4 }, 5)), "0,2,4", "from_root: root not in the list")
+t.eq(scales.caption({ 0, 3, 7 }, 34), "C  D#  G", "caption: two spaces when it fits")
+local all12 = pcs_of(scales.CHAOS, 0)
+t.eq(scales.caption(all12, 34), "C C# D D# E F F# G G# A A# B", "caption: one space for 12 notes")
+for n = 1, 12 do
+  local some = {}
+  for i = 1, n do
+    some[i] = all12[i]
+  end
+  t.check(#scales.caption(some, 34) <= 34, "caption: " .. n .. " notes fit in 34 characters")
+end
 t.eq(scales.names { 0, 3, 7 }, "C  D#  G", "names")
 t.eq(scales.names({ 1, 6 }, " "), "C# F#", "names: separator")
 

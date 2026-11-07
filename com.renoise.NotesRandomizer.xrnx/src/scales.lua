@@ -212,4 +212,17 @@ function M.names(pitch_classes, separator)
   return table.concat(names, separator or "  ")
 end
 
+---Note names for the piano caption. Uses two spaces between names, or one
+---space when two would make the text longer than `max_chars`.
+---@param pitch_classes integer[]
+---@param max_chars integer
+---@return string
+function M.caption(pitch_classes, max_chars)
+  local wide = M.names(pitch_classes, "  ")
+  if #wide <= max_chars then
+    return wide
+  end
+  return M.names(pitch_classes, " ")
+end
+
 return M

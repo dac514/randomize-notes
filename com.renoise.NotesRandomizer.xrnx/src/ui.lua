@@ -23,6 +23,9 @@ local FIELD_WIDTH = WIDTH - LABEL_WIDTH
 local PIANO_HEIGHT = 60
 local INDENT = 22
 local OCTAVE_WIDTH = 44
+-- Longest note list, in characters, that fits WIDTH in the mono font. Renoise
+-- 3.5 draws mono text at about 6.1 pixels per character.
+local CAPTION_CHARS = 34
 local BUTTON_HEIGHT = renoise.ViewBuilder.DEFAULT_DIALOG_BUTTON_HEIGHT + 4
 
 local OCTAVES = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }
@@ -384,28 +387,29 @@ function M.build(app)
     octaves_to_text.style = octaves_active and "normal" or "disabled"
 
     local pcs = scales.pitch_classes(s.how, s.key, s.custom)
+    local text, font, style = "", "normal", "disabled"
     if is_shuffle then
-      caption.text = "Shuffle mixes up the notes that are there"
-      caption.font = "normal"
-      caption.style = "disabled"
+      text = "Shuffle mixes up the notes that are there"
       keys.tooltip = ""
     elseif s.how == scales.CHAOS then
-      caption.text = "All 12 notes"
-      caption.font = "normal"
-      caption.style = "disabled"
+      text = "All 12 notes"
       keys.tooltip = ""
     elseif pcs and #pcs == 0 then
-      caption.text = "Click the keys to pick notes"
-      caption.font = "normal"
-      caption.style = "disabled"
+      text = "Click the keys to pick notes"
       keys.tooltip = "Click a key to add or remove that note."
     else
-      caption.text = scales.names(scales.from_root(pcs or {}, scales.root(s.how, s.key)))
-      caption.font = "mono"
-      caption.style = "normal"
+      text = scales.caption(scales.from_root(pcs or {}, scales.root(s.how, s.key)), CAPTION_CHARS)
+      font, style = "mono", "normal"
       keys.tooltip = s.how == scales.CUSTOM and "Click a key to add or remove that note."
         or "Click a key to make it the root."
     end
+    -- Renoise widens a text view to fit new text and never shrinks it, and the
+    -- dialog grows with it. Set the font before the text, then restore the
+    -- fixed width.
+    caption.font = font
+    caption.style = style
+    caption.text = text
+    caption.width = WIDTH
     button.text = is_shuffle and "Shuffle" or "Randomize"
     keys:update()
   end
