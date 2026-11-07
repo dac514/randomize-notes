@@ -4,6 +4,8 @@ A [Renoise](https://www.renoise.com) tool that randomizes or shuffles notes in a
 scale and key. It works in the Pattern Editor and the Phrase Editor, and a
 small piano shows the scale you pick.
 
+![The Notes Randomizer dialog in Renoise 3.5, set to A Harmonic Minor. The piano marks the scale notes with dots and rings the root A.](docs/dialog.png)
+
 The user guide is in
 [`com.renoise.NotesRandomizer.xrnx/README.md`](com.renoise.NotesRandomizer.xrnx/README.md).
 Renoise also shows it in the Tool Browser.
