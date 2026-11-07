@@ -355,6 +355,19 @@ function App.close_dialogs()
   end
 end
 
+---Bring the open dialog up to date, for example when the active editor changes.
+local function refresh_dialog()
+  local entry = App.dialogs.main
+  if entry and entry.dialog.visible and entry.refresh then
+    entry.refresh()
+  end
+end
+
+---Guarded `refresh_dialog`, created once per `App.start` so `reg.notifier`
+---sees the same function every time and registers it only once.
+---@type fun()|nil
+local guarded_refresh = nil
+
 ---Show the main dialog, creating it if needed.
 function App.show_dialog()
   local existing = App.dialogs.main
@@ -362,18 +375,20 @@ function App.show_dialog()
     existing.dialog:show()
     return
   end
+  -- Registered here and not in App.start: Renoise loads tools before it has
+  -- finished starting, and refuses access to the application theme then
+  -- ("can not access the application theme while the application
+  -- initializes"). The dialog only opens after startup.
+  if guarded_refresh then
+    -- The Where popup follows the active editor.
+    reg.notifier(renoise.app().window.active_middle_frame_observable, guarded_refresh)
+    -- The direction buttons mix their colours from the theme.
+    reg.notifier(renoise.app().theme_observable, guarded_refresh)
+  end
   local ui = require "src.ui"
   local vb, root, refresh, key_handler = ui.build(App)
   local dialog = renoise.app():show_custom_dialog(App.dialog_title, root, key_handler)
   App.register_dialog("main", dialog, vb, root, refresh)
-end
-
----Bring the open dialog up to date, for example when the active editor changes.
-local function refresh_dialog()
-  local entry = App.dialogs.main
-  if entry and entry.dialog.visible and entry.refresh then
-    entry.refresh()
-  end
 end
 
 -- Lifecycle ------------------------------------------------------------------
@@ -408,10 +423,9 @@ function App.start()
       end),
     }
   end
-  -- The Where popup follows the active editor.
-  reg.notifier(renoise.app().window.active_middle_frame_observable, App.guard(refresh_dialog))
-  -- The direction buttons mix their colours from the theme.
-  reg.notifier(renoise.app().theme_observable, App.guard(refresh_dialog))
+  -- The dialog's app notifiers are registered by App.show_dialog. Do not touch
+  -- renoise.app().theme here: it errors while Renoise is starting up.
+  guarded_refresh = App.guard(refresh_dialog)
   -- Close dialogs when the song changes so no view keeps stale song references.
   reg.notifier(renoise.tool().app_new_document_observable, App.close_dialogs)
   App.log "started"
@@ -448,6 +462,7 @@ function App.stop()
     tool.app_idle_observable:remove_notifier(run_deferred)
   end
   reg.menus, reg.keys, reg.notifiers, reg.timers = {}, {}, {}, {}
+  guarded_refresh = nil
   App.log "stopped"
 end
 
