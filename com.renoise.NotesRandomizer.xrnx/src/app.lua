@@ -12,19 +12,64 @@
   * Inside song list notifiers, read dependents through `App.defer`.
 ]]
 
+local notes = require "src.notes"
+local scales = require "src.scales"
+local scopes = require "src.scopes"
+local targets = require "src.targets"
+
 local App = {}
 
 ---@class NotesRandomizerPreferences : renoise.Document.DocumentNode
----@field greeting renoise.Document.ObservableString
+---@field how renoise.Document.ObservableString
+---@field key renoise.Document.ObservableNumber
+---@field custom renoise.Document.ObservableString
+---@field where_pattern renoise.Document.ObservableString
+---@field where_phrase renoise.Document.ObservableString
+---@field neighbour renoise.Document.ObservableBoolean
+---@field neighbour_shift renoise.Document.ObservableNumber
+---@field preserve_notes renoise.Document.ObservableBoolean
+---@field preserve_octaves renoise.Document.ObservableBoolean
+---@field octave_min renoise.Document.ObservableNumber
+---@field octave_max renoise.Document.ObservableNumber
+---@field ignore_muted renoise.Document.ObservableBoolean
 
 App.name = "Randomize Notes"
-App.menu_entry = "Main Menu:Tools:" .. App.name .. "..."
-App.keybinding = "Global:Tools:Show " .. App.name
+App.dialog_title = "Notes Randomizer"
+
+---Menu entries that open the dialog. The names are the ones version 1.11
+---used, plus the phrase editor.
+App.menu_entries = {
+  "Main Menu:Tools:Randomize Notes...",
+  "Pattern Editor:Randomize Notes...",
+  "Phrase Editor:Randomize Notes...",
+}
+
+---Key bindings that open the dialog.
+App.dialog_keybindings = {
+  "Pattern Editor:Tools:Randomize Notes...",
+  "Phrase Editor:Phrase Operations:Randomize Notes...",
+}
+
+---Key bindings that run directly on one scope. Users' mappings are stored by
+---these names, so the 1.11 ones must not change.
+---@type { name: string, scope: ScopeId }[]
+App.scope_keybindings = {
+  { name = "Pattern Editor:Block Operations:Randomize Notes", scope = "pattern_selection" },
+  {
+    name = "Pattern Editor:Track Operations:Randomize Notes in Pattern",
+    scope = "track_in_pattern",
+  },
+  { name = "Pattern Editor:Track Operations:Randomize Notes in Song", scope = "track_in_song" },
+  { name = "Pattern Editor:Pattern Operations:Randomize Notes", scope = "whole_pattern" },
+  { name = "Phrase Editor:Block Operations:Randomize Notes", scope = "phrase_selection" },
+  { name = "Phrase Editor:Phrase Operations:Randomize Notes", scope = "whole_phrase" },
+}
 
 ---@class AppDialogEntry
 ---@field dialog renoise.Dialog
 ---@field vb renoise.ViewBuilder
 ---@field root renoise.Views.View
+---@field refresh fun()|nil Update the dialog after a change outside of it.
 
 ---Registered dialogs by name. Read by the dev bridge's `views` command.
 ---@type table<string, AppDialogEntry>
@@ -166,14 +211,139 @@ function App.defer(fn)
   end
 end
 
+-- Settings -------------------------------------------------------------------
+
+---The editor the Where popup follows: the phrase editor when it is the
+---active middle frame, the pattern editor otherwise.
+---@return ScopeEditor
+function App.editor()
+  local frame = renoise.app().window.active_middle_frame
+  if frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    return "phrase"
+  end
+  return "pattern"
+end
+
+---The stored Where choice of an editor.
+---@param editor ScopeEditor
+---@return ScopeId
+function App.scope(editor)
+  local prefs = App.prefs()
+  local stored = editor == "phrase" and prefs.where_phrase.value or prefs.where_pattern.value
+  return scopes.at(editor, scopes.index(editor, stored))
+end
+
+---The stored settings as plain values, repaired where they are invalid.
+---@return NotesSettings
+function App.settings()
+  local prefs = App.prefs()
+  local how = prefs.how.value
+  if not scales.is_mode(how) then
+    how = "Natural Major"
+  end
+  local custom = prefs.custom.value
+  if #custom ~= 12 or custom:find "[^01]" then
+    custom = scales.EMPTY_CUSTOM
+  end
+  return {
+    how = how,
+    key = (math.floor(prefs.key.value) - 1) % 12,
+    custom = custom,
+    neighbour = prefs.neighbour.value,
+    shift = notes.SHIFTS[prefs.neighbour_shift.value] or "rand",
+    preserve_notes = prefs.preserve_notes.value,
+    preserve_octaves = prefs.preserve_octaves.value,
+    octave_min = prefs.octave_min.value,
+    octave_max = prefs.octave_max.value,
+  }
+end
+
+-- Running --------------------------------------------------------------------
+
+---@param m integer
+---@param n integer
+---@return integer
+local function rng(m, n)
+  return math.random(m, n)
+end
+
+---@param text string
+local function status(text)
+  renoise.app():show_status(App.name .. ": " .. text)
+  App.log(text)
+end
+
+---@param n integer
+---@return string
+local function count(n)
+  return n == 1 and "1 note" or (n .. " notes")
+end
+
+---Randomize or shuffle the notes of a scope with the stored settings.
+---@param scope ScopeId|nil Default: the dialog's Where for the active editor.
+---@return integer changed Number of notes processed (0 when nothing ran).
+function App.run(scope)
+  local song = renoise.song()
+  if not song then
+    return 0
+  end
+  scope = scope or App.scope(App.editor())
+  local settings = App.settings()
+  local label = scopes.LABELS[scope]
+
+  local options, problem = nil, nil
+  if settings.how ~= scales.SHUFFLE then
+    options, problem = notes.options(settings)
+    if not options then
+      status(problem or "Nothing to do.")
+      return 0
+    end
+  end
+
+  local columns, message = targets.collect(song, scope, App.prefs().ignore_muted.value)
+  if not columns then
+    status(message or "Nothing to do.")
+    return 0
+  end
+  if #columns == 0 then
+    status(("No notes found in %s."):format(label))
+    return 0
+  end
+
+  if options == nil then
+    local values = {}
+    for i, column in ipairs(columns) do
+      values[i] = column.note_value
+    end
+    local shuffled = notes.shuffle(values, rng)
+    song:describe_undo "Shuffle Notes"
+    for i, column in ipairs(columns) do
+      column.note_value = shuffled[i]
+    end
+    status(("Shuffled %s in %s."):format(count(#columns), label))
+  else
+    song:describe_undo "Randomize Notes"
+    for _, column in ipairs(columns) do
+      column.note_value = notes.randomize(column.note_value, options, rng)
+    end
+    local what = settings.how
+    if scales.uses_key(what) then
+      what = scales.NOTE_NAMES[settings.key + 1] .. " " .. what
+    end
+    status(("Randomized %s in %s (%s)."):format(count(#columns), label, what))
+  end
+  return #columns
+end
+
 -- Dialogs --------------------------------------------------------------------
 
 ---@param name string
 ---@param dialog renoise.Dialog
 ---@param vb renoise.ViewBuilder
 ---@param root renoise.Views.View
-function App.register_dialog(name, dialog, vb, root)
-  App.dialogs[name] = { dialog = dialog, vb = vb, root = root }
+---@param refresh fun()|nil
+function App.register_dialog(name, dialog, vb, root, refresh)
+  App.dialogs[name] = { dialog = dialog, vb = vb, root = root, refresh = refresh }
 end
 
 function App.close_dialogs()
@@ -193,22 +363,53 @@ function App.show_dialog()
     return
   end
   local ui = require "src.ui"
-  local vb, root = ui.build(App)
-  local dialog = renoise.app():show_custom_dialog(App.name, root)
-  App.register_dialog("main", dialog, vb, root)
+  local vb, root, refresh, key_handler = ui.build(App)
+  local dialog = renoise.app():show_custom_dialog(App.dialog_title, root, key_handler)
+  App.register_dialog("main", dialog, vb, root, refresh)
+end
+
+---Bring the open dialog up to date, for example when the active editor changes.
+local function refresh_dialog()
+  local entry = App.dialogs.main
+  if entry and entry.dialog.visible and entry.refresh then
+    entry.refresh()
+  end
 end
 
 -- Lifecycle ------------------------------------------------------------------
 
 function App.start()
-  reg.menu {
-    name = App.menu_entry,
-    invoke = App.guard(App.show_dialog),
-  }
-  reg.key {
-    name = App.keybinding,
-    invoke = App.guard(App.show_dialog),
-  }
+  -- Seed once. Version 1.11 re-seeded with os.time() on every run, so two runs
+  -- in the same second gave the same result.
+  math.randomseed(os.time() + math.floor(os.clock() * 1000))
+  math.random()
+
+  for _, name in ipairs(App.menu_entries) do
+    reg.menu { name = name, invoke = App.guard(App.show_dialog) }
+  end
+  for _, name in ipairs(App.dialog_keybindings) do
+    reg.key {
+      name = name,
+      invoke = App.guard(function(repeated)
+        if not repeated then
+          App.show_dialog()
+        end
+      end),
+    }
+  end
+  for _, binding in ipairs(App.scope_keybindings) do
+    local scope = binding.scope
+    reg.key {
+      name = binding.name,
+      invoke = App.guard(function(repeated)
+        if not repeated then
+          App.run(scope)
+        end
+      end),
+    }
+  end
+  -- The Where popup follows the active editor.
+  reg.notifier(renoise.app().window.active_middle_frame_observable, App.guard(refresh_dialog))
   -- Close dialogs when the song changes so no view keeps stale song references.
   reg.notifier(renoise.tool().app_new_document_observable, App.close_dialogs)
   App.log "started"

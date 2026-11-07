@@ -29,7 +29,23 @@ _AUTO_RELOAD_DEBUG = false
 -- preferences.xml inside the tool folder.
 if not renoise.tool().preferences then
   renoise.tool().preferences = renoise.Document.create "NotesRandomizerPreferences" {
-    greeting = "Hello from Randomize Notes",
+    -- How: Shuffle, Chaos, Custom or a scale name (see src/scales.lua).
+    how = "Natural Major",
+    -- Key popup index: 1 = C ... 12 = B.
+    key = 1,
+    -- Custom scale: 12 characters, "1" for each note, C first.
+    custom = "000000000000",
+    -- Where, one choice per editor (ids from src/scopes.lua).
+    where_pattern = "pattern_selection",
+    where_phrase = "phrase_selection",
+    neighbour = false,
+    -- Nearest neighbour direction: 1 = Rand, 2 = Up, 3 = Down.
+    neighbour_shift = 1,
+    preserve_notes = false,
+    preserve_octaves = true,
+    octave_min = 0,
+    octave_max = 9,
+    ignore_muted = false,
   }
 end
 
