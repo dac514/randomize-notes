@@ -67,17 +67,22 @@ function M.build(app)
   ---@type table<string, { box: renoise.Views.CheckBox, text: renoise.Views.Text }>
   local checkboxes = {}
 
-  local function option(id, text, observable)
+  ---@param id string
+  ---@param text string
+  ---@param observable renoise.Document.ObservableBoolean
+  ---@param tooltip string|nil Shown on the checkbox and on its label.
+  local function option(id, text, observable, tooltip)
     local box = vb:checkbox {
       id = id,
       bind = observable,
+      tooltip = tooltip,
       notifier = function()
         if refresh then
           refresh()
         end
       end,
     }
-    local caption_text = vb:text { id = id .. "_text", text = text }
+    local caption_text = vb:text { id = id .. "_text", text = text, tooltip = tooltip }
     checkboxes[id] = { box = box, text = caption_text }
     return vb:row { box, caption_text }
   end
@@ -311,8 +316,20 @@ function M.build(app)
       vb:space { width = INDENT },
       shift,
     },
-    option("preserve_notes", "Preserve notes in scale", prefs.preserve_notes),
-    option("preserve_octaves", "Preserve octaves", prefs.preserve_octaves),
+    option(
+      "preserve_notes",
+      "Preserve notes in scale",
+      prefs.preserve_notes,
+      "Keep the notes that are already in the scale and change only the others. "
+        .. "With Preserve octaves off, a kept note can still move to another octave."
+    ),
+    option(
+      "preserve_octaves",
+      "Preserve octaves",
+      prefs.preserve_octaves,
+      "Keep each note in its own octave. "
+        .. "Turn it off to pick a random octave in the range below."
+    ),
     vb:row {
       spacing = ROW,
       vb:space { width = INDENT - ROW },
