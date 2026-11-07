@@ -410,6 +410,8 @@ function App.start()
   end
   -- The Where popup follows the active editor.
   reg.notifier(renoise.app().window.active_middle_frame_observable, App.guard(refresh_dialog))
+  -- The direction buttons mix their colours from the theme.
+  reg.notifier(renoise.app().theme_observable, App.guard(refresh_dialog))
   -- Close dialogs when the song changes so no view keeps stale song references.
   reg.notifier(renoise.tool().app_new_document_observable, App.close_dialogs)
   App.log "started"

@@ -184,13 +184,69 @@ function M.build(app)
 
   -- Options -----------------------------------------------------------------
 
-  local shift = vb:switch {
-    id = "neighbour_shift",
-    width = WIDTH - INDENT - 2 * ROW - MARGIN,
-    items = { "Rand", "Up", "Down" },
-    bind = prefs.neighbour_shift,
-    tooltip = "Move each note to the next scale note up, down, or a random one of the two.",
-  }
+  -- Rand / Up / Down, built from buttons and not from a switch. Renoise dims
+  -- the label of an inactive switch on top of its accent colour, which makes
+  -- it hard to read. These buttons stay active and draw their own muted look
+  -- while the option is off; clicks are ignored then.
+  local shift_on = false
+  local shift_width = WIDTH - INDENT - 2 * ROW - MARGIN
+  local segment = math.floor(shift_width / 3)
+  local shift_styles = { "rounded_left", "normal", "rounded_right" }
+  ---@type renoise.Views.Button[]
+  local shift_buttons = {}
+  for i, text in ipairs { "Rand", "Up", "Down" } do
+    shift_buttons[i] = vb:button {
+      id = "shift_" .. text:lower(),
+      text = text,
+      style = shift_styles[i],
+      width = i < 3 and segment or shift_width - 2 * segment,
+      tooltip = "Move each note to the next scale note up, down, or a random one of the two.",
+      notifier = function()
+        if shift_on then
+          prefs.neighbour_shift.value = i
+          refresh()
+        end
+      end,
+    }
+  end
+  local shift =
+    vb:row { id = "neighbour_shift", shift_buttons[1], shift_buttons[2], shift_buttons[3] }
+
+  ---@param a RGBColor
+  ---@param b RGBColor
+  ---@param t number 0 gives `a`, 1 gives `b`.
+  ---@return RGBColor
+  local function mix(a, b, t)
+    return {
+      math.floor(a[1] + (b[1] - a[1]) * t + 0.5),
+      math.floor(a[2] + (b[2] - a[2]) * t + 0.5),
+      math.floor(a[3] + (b[3] - a[3]) * t + 0.5),
+    }
+  end
+
+  local THEME_DEFAULT = { 0, 0, 0 } -- tells a button to use the theme colours again
+
+  ---Colour the direction buttons. On: like a Renoise switch. Off: a muted
+  ---accent behind the chosen direction, dimmed text that stays readable.
+  local function paint_shift()
+    local selected = prefs.neighbour_shift.value
+    local c = renoise.app().theme.colors
+    for i, b in ipairs(shift_buttons) do
+      if shift_on and i == selected then
+        b.color = "selected_button_back"
+        b.secondary_color = "selected_button_font"
+      elseif shift_on then
+        b.color = THEME_DEFAULT
+        b.secondary_color = THEME_DEFAULT
+      elseif i == selected then
+        b.color = mix(c.body_back, c.selected_button_back, 0.45)
+        b.secondary_color = c.main_font
+      else
+        b.color = mix(c.button_back, c.body_back, 0.5)
+        b.secondary_color = mix(c.button_font, c.body_back, 0.5)
+      end
+    end
+  end
 
   ---@type renoise.Views.Popup, renoise.Views.Popup
   local octave_min, octave_max
@@ -317,7 +373,8 @@ function M.build(app)
 
     key.active = scales.uses_key(s.how)
     set_active("neighbour", uses_scale)
-    shift.active = uses_scale and s.neighbour
+    shift_on = uses_scale and s.neighbour
+    paint_shift()
     set_active("preserve_notes", uses_scale)
     set_active("preserve_octaves", not is_shuffle)
     local octaves_active = not is_shuffle and not s.preserve_octaves
