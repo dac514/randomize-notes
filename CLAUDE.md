@@ -236,3 +236,5 @@ UPGRADING.md                  later kit fixes for projects made from an older Re
 
 - Tags `vX.YY` must match `manifest.xml` `<Version>`; pushing one publishes a GitHub release.
 - CI must be green: StyLua, LuaLS, `test` and `package`.
+- Before tagging, quit Renoise, start it again and check that the tool loads without a
+  "Scripting Tool Error". Installs and reloads never load the tool during Renoise's startup.
