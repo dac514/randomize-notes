@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseScriptingTool doc_version="0">
+  <ApiVersion>6.2</ApiVersion>
+  <Id>com.renoise.NotesRandomizer</Id>
+  <Version>2.00</Version>
+  <Author>Dac Chartrand [dac@renoise.com]</Author>
+  <Name>Randomize Notes</Name>
+  <Category>Pattern, Editing</Category>
+  <Description>Randomizes or shuffles notes in a scale and key, to create new variations of existing sequences. Works in the pattern editor and the phrase editor. Shows up as 'Randomize Notes...' in the Tools menu and in the Pattern Editor and Phrase Editor context menus. Key bindings are listed under 'Randomize Notes' in the Pattern Editor and Phrase Editor sections.</Description>
+  <Platform>Windows, Mac, Linux</Platform>
+  <License>MIT</License>
+  <DocumentationPath>README.md</DocumentationPath>
+  <Homepage>https://github.com/dac514/randomize-notes</Homepage>
+</RenoiseScriptingTool>

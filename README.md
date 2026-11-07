@@ -14,42 +14,6 @@ Yes, the name is a joke. The tools you make with it don't have to be.
 Questions or ideas? There is a
 [thread on the Renoise forum](https://forum.renoise.com/t/reslop-a-template-to-build-claude-code-tools/79678).
 
-<!-- template:start -->
-## Your first tool in five minutes
-
-Prefer to watch? The video walks through everything below, start to finish.
-
-[![Watch the demo on YouTube](https://img.youtube.com/vi/DR_vuVzrXCU/maxresdefault.jpg)](https://www.youtube.com/watch?v=DR_vuVzrXCU)
-
-You need three things: Renoise 3.5 (the demo works), a coding assistant
-([Claude Code](https://claude.com/claude-code), Copilot CLI, or GitHub Copilot
-in your IDE), and a GitHub account. No Lua experience required. No terminal
-experience required either, though it never hurts.
-
-1. **Click "Use this template"** at the top of this page and give your
-   repository a name. Then get it onto your computer (GitHub Desktop is fine,
-   or `git clone`).
-2. **Let Renoise listen.** In Renoise, open *Edit → Preferences → OSC* and tick
-   *Enable Server*. Keep the defaults (UDP, port 8000). This is how the kit
-   installs and reloads your tool without anyone clicking through menus.
-3. **Open the folder in Claude Code, Copilot CLI, or GitHub Copilot and ask
-   for a setup.** Something like:
-
-   > Set this project up for me. Install anything that's missing, name the tool
-   > com.yourname.ToolName, and check that you can talk to my Renoise.
-
-   Your assistant installs the formatter, the type checker and the task runner,
-   renames the example tool, puts it into Renoise, and reports back when it can
-   see your song. If it needs a password for an install, it will ask.
-4. **Ask for a feature.** "Add a button that doubles the BPM." "Make a dialog
-   that lists every instrument." Your assistant writes the Lua, checks it
-   against the Renoise API, reloads the tool inside Renoise, and shows you the
-   dialog it made.
-
-That is the whole workflow. The rest of this page is for the curious and the
-hands-on.
-<!-- template:end -->
-
 ## What's in the box
 
 ```
@@ -66,7 +30,7 @@ UPGRADING.md          bring later kit fixes into a project made from an older Re
 .vscode/              VS Code: recommended extensions (Lua, StyLua, just) and format on save
 ```
 
-The example tool adds *Tools → My Tool...* to Renoise's menu. Its dialog shows
+The example tool adds *Tools → Randomize Notes...* to Renoise's menu. Its dialog shows
 the song name, a live BPM read-out, a track count that follows the song, a text
 field that remembers what you type, and a button. It is small on purpose: it
 shows the patterns, then gets out of the way. The label text lives in a plain
