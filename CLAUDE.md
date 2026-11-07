@@ -113,6 +113,7 @@ docs/renoise/                 vendored xrnx guide pages (start/, guide/)
 .github/workflows/ci.yml      stylua --check, lua-language-server --check, unit tests, package
 .github/workflows/release.yml tag v* -> GitHub release with the .xrnx attached
 <Id>.xrnx/manifest.xml        Id (== folder name), ApiVersion 6.2, Version like 1.02 (no semver)
+<Id>.xrnx/cover.png           600x350 cover for the renoise.com tool page; thumbnail.png is the 120x45 list image
 <Id>.xrnx/main.lua            thin entry: package.path, preferences, APP = require "src.app", APP.start(), dev bridge
 <Id>.xrnx/src/app.lua         App.start/stop, App.reg (menu/key/notifier/timer), App.register_dialog, App.guard, App.defer;
                               menus and key bindings, App.settings(), App.run(scope)

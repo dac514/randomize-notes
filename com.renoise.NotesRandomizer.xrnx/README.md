@@ -79,6 +79,11 @@ settings, so you can use them without opening the dialog.
 Drag `com.renoise.NotesRandomizer.xrnx` onto Renoise. It replaces version 1.11
 if you have it. Renoise 3.5 or newer is needed.
 
+## Changes in 2.01
+
+- The tool page on renoise.com now has a cover image and a thumbnail.
+  The code is the same as in 2.00.
+
 ## Changes in 2.00
 
 - The tool now works with Renoise 3.5 (API 6.2).
