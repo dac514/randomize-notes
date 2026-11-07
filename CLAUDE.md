@@ -8,7 +8,7 @@ inspect it from the command line while Renoise is running.
 ## What you are working on
 
 - The tool is the single `*.xrnx/` folder in the repo root
-  (`com.renoise.NotesRandomizer.xrnx/` until `just init` renames it). Everything else is tooling.
+  (`com.renoise.NotesRandomizer.xrnx/`, Randomize Notes). Everything else is tooling.
 - Lua dialect: **LuaJIT** = Lua 5.1 syntax (`unpack`, `loadstring`, `setfenv`;
   `bit` is built in; no `goto`, no `//`, no integer subtype).
 - Renoise API version **6.2** (Renoise 3.5). The API reference is vendored in
@@ -114,9 +114,16 @@ docs/renoise/                 vendored xrnx guide pages (start/, guide/)
 .github/workflows/release.yml tag v* -> GitHub release with the .xrnx attached
 <Id>.xrnx/manifest.xml        Id (== folder name), ApiVersion 6.2, Version like 1.02 (no semver)
 <Id>.xrnx/main.lua            thin entry: package.path, preferences, APP = require "src.app", APP.start(), dev bridge
-<Id>.xrnx/src/app.lua         App.start/stop, App.reg (menu/key/notifier/timer), App.register_dialog, App.guard, App.defer
-<Id>.xrnx/src/ui.lua          ViewBuilder dialog; returns (vb, root)
-<Id>.xrnx/src/labels.lua      pure Lua (no renoise.*): the dialog's label strings; the unit-tested example
+<Id>.xrnx/src/app.lua         App.start/stop, App.reg (menu/key/notifier/timer), App.register_dialog, App.guard, App.defer;
+                              menus and key bindings, App.settings(), App.run(scope)
+<Id>.xrnx/src/ui.lua          ViewBuilder dialog; returns (vb, root, refresh, key_handler)
+<Id>.xrnx/src/piano.lua       canvas render of the scale piano and its hit test
+<Id>.xrnx/src/targets.lua     note columns a scope covers (visible, mute filter, aliases, script phrases)
+<Id>.xrnx/src/scales.lua      pure Lua: Renoise's 35 scales as masks, keys, Custom masks
+<Id>.xrnx/src/notes.lua       pure Lua: randomize, nearest neighbour, shuffle on note_value integers
+<Id>.xrnx/src/selection.lua   pure Lua: selection bounds to line/track/column ranges
+<Id>.xrnx/src/scopes.lua      pure Lua: Where ids and labels per editor
+<Id>.xrnx/src/keyboard.lua    pure Lua: piano key geometry and hit test
 tests/helper.lua              check/eq/fails/done for test files; tests/*_test.lua run under LuaJIT via `just test`
 <Id>.xrnx/dev/                dev bridge (bridge.lua, commands.lua, serialize.lua, home_port.lua); never shipped
 UPGRADING.md                  later kit fixes for projects made from an older ReSlop, with paste-in prompts
@@ -128,7 +135,7 @@ UPGRADING.md                  later kit fixes for projects made from an older Re
   (it re-applies any local patches, which are listed in `definitions/UPSTREAM.md`).
 - `dev/` is development only: `src/` must never `require` anything from `dev.*`,
   and `package` strips it. `tests/` lives outside the bundle and is never shipped.
-- Logic worth unit-testing goes in a pure module (like `src/labels.lua`): no `renoise.*`
+- Logic worth unit-testing goes in a pure module (like `src/notes.lua`): no `renoise.*`
   and no Renoise additions to the Lua stdlib (`table.find`, `oprint`, ...), because
   `just test` runs under plain LuaJIT where those do not exist. `src/app.lua` and
   `src/ui.lua` are not testable that way; keep them thin and push logic into pure modules.
@@ -152,7 +159,7 @@ UPGRADING.md                  later kit fixes for projects made from an older Re
   `sequencer.pattern_sequence_observable`, `phrase_mappings_observable`) fire *during* the edit:
   the list is updated, dependents (pattern tracks, sequence, selection) are not, and they also
   fire on undo/redo. Inside them never edit the song; observe the dependent object if it has an
-  observable, else `App.defer(fn)`. Demo: the tracks row in `src/ui.lua`.
+  observable, else `App.defer(fn)`.
 - ViewBuilder constructor tables accept only documented fields; a typo such as
   `vb:text { margin = 1 }` crashes at runtime and LuaLS cannot catch it.
 - Manifest: `Id` must equal the folder name without `.xrnx`; `Version` is a
@@ -167,8 +174,9 @@ UPGRADING.md                  later kit fixes for projects made from an older Re
   only recognises that form), which is why StyLua uses `call_parentheses = "None"`:
   `vb:text { ... }`, `require "src.app"`.
 - Prefer `renoise.app():show_status(msg)` over modal dialogs while developing.
-- User-visible strings and menu paths live in `src/app.lua` (`App.name`,
-  `App.menu_entry`, `App.keybinding`).
+- User-visible strings and menu paths live in `src/app.lua` (`App.name`, `App.dialog_title`,
+  `App.menu_entries`, `App.dialog_keybindings`, `App.scope_keybindings`). The menu and key
+  names are the ones version 1.11 used; users' mappings are stored by name, so never rename them.
 
 ## API knowledge
 

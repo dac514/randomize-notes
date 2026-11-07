@@ -6,8 +6,9 @@
 
   The named scales are Renoise's own list (the instrument "Scale" menu,
   `trigger_options.available_scale_modes`), in the same order. Each mask has
-  12 characters for C, C#, D ... B, rooted on C. The masks are the ones the
-  Renoise team ships in xLib (`xScale.SCALES`) and Duplex (`HARMONIC_SCALES`).
+  12 characters for C, C#, D ... B, rooted on C. The masks match the
+  `SCALE_MODES` table of Renoise's pattrns library (renoise/pattrns,
+  `src/note/scale.rs`) and the xLib and Duplex tables by the Renoise team.
 ]]
 
 local M = {}
